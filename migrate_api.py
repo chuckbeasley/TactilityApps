@@ -6,7 +6,6 @@ APPS = [
     "Apps/SerialConsole/main/Source/ConnectView.cpp",
     "Apps/TwoEleven/main/Source/TwoEleven.cpp",
     "Apps/EpubReader/main/Source/EpubReader.cpp",
-    "Apps/Doom/main/Source/main.cpp",
     "Apps/MystifyDemo/main/Source/Main.cpp",
     "Apps/Snake/main/Source/Snake.cpp",
     "Apps/TamaTac/main/Source/TamaTac.cpp",
