@@ -2,6 +2,7 @@
 
 #include <app/manager.h>
 #include <app/paths.h>
+#include <app/start.h>
 #include <app/stream.h>
 #include <tactility/device.h>
 #include <tactility/drivers/wifi.h>
@@ -23,7 +24,6 @@ constexpr TickType_t LVGL_DEFAULT_LOCK_TIME = 500; // 500 ticks = 500 ms
 #include <freertos/task.h>
 
 #include <algorithm>
-#include <cerrno>
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
@@ -183,13 +183,28 @@ static bool getCurrentVersionString(const FirmwareOps* ops, void* ctx, char* ver
         return false;
     }
 
+    // Format into a stack buffer guaranteed to hold the longest possible result, then
+    // copy-truncate into the caller-sized destination. Avoids GCC 15's -Wformat-truncation
+    // firing on versionOutLen, which isn't a compile-time constant inside this function.
+    char tmp[96];
+    int written;
     if (info.name[0] != '\0') {
-        snprintf(versionOut, versionOutLen, "%u.%u.%u (%s)",
+        written = snprintf(tmp, sizeof(tmp), "%u.%u.%u (%s)",
             (unsigned)info.fw_major, (unsigned)info.fw_minor, (unsigned)info.fw_patch, info.name);
     } else {
-        snprintf(versionOut, versionOutLen, "%u.%u.%u",
+        written = snprintf(tmp, sizeof(tmp), "%u.%u.%u",
             (unsigned)info.fw_major, (unsigned)info.fw_minor, (unsigned)info.fw_patch);
     }
+    if (written < 0) {
+        versionOut[0] = '\0';
+        return true;
+    }
+    size_t length = (size_t)written;
+    if (versionOutLen > 0 && length >= versionOutLen) {
+        length = versionOutLen - 1;
+    }
+    memcpy(versionOut, tmp, length);
+    versionOut[length] = '\0';
     return true;
 }
 
@@ -347,7 +362,7 @@ static void performUpdate(Context* ctx, const std::string& filePath) {
 
     FILE* file = fopen(filePath.c_str(), "rb");
     if (file == nullptr) {
-        LOG_E(TAG, "Failed to open '%s' (len=%zu): %s", filePath.c_str(), filePath.size(), strerror(errno));
+        LOG_E(TAG, "Failed to open '%s' (len=%zu)", filePath.c_str(), filePath.size());
         dispatchToUi(ctx, [](Context& app, void*) {
             setStatus(&app, "Failed to open selected file");
             setUpdateButtonsDisabled(&app, false);
@@ -553,7 +568,7 @@ static void startUpdateTask(Context* ctx, const std::string& filePath) {
 // Matches Tactility's own built-in file-selection system app (Tactility/Source/app/fileselection/
 // FileSelection.cpp) - its manifest id and argv convention aren't part of any public app-module
 // header (that app isn't generic app-module framework, just one particular app shipped by
-// Tactility), so external apps reach it by calling app_manager_start_for_result_with_streams()
+// Tactility), so external apps reach it by calling app_start_for_result_with_streams()
 // against these directly, the same way Tactility's own built-in apps (e.g. Notes) do internally.
 static constexpr auto* FILE_SELECTION_APP_ID = "tactility.fileselection";
 static constexpr auto* FILE_SELECTION_MODE_EXISTING = "--existing";
@@ -578,7 +593,7 @@ static void onUpdateButtonClicked(lv_event_t* /*event*/) {
         .event_group = ctx->eventGroup,
     };
     uint32_t instanceId = 0;
-    if (app_manager_start_for_result_with_streams(FILE_SELECTION_APP_ID, ctx->appInstanceId, 1, argv, &binding, 1, &instanceId) == ERROR_NONE) {
+    if (app_start_for_result_with_streams(FILE_SELECTION_APP_ID, 1, argv, &binding, 1, ctx->appInstanceId, &instanceId) == ERROR_NONE) {
         ctx->pickFileLaunchId = instanceId;
     }
 }

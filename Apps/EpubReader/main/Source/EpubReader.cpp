@@ -2,6 +2,7 @@
 #include "HtmlStrip.h"              // stripHtmlToText
 
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/paths.h>
 #include <lvgl/widgets/toolbar.h>
 #include <tactility/log.h>
@@ -192,9 +193,7 @@ void openTocDialog(Context* ctx) {
     for (const auto& item : toc) {
         argv.push_back(item.title.c_str());
     }
-    app_manager_start_for_result(
-        "SelectionDialog", ctx->appInstanceId,
-        (int)argv.size(), argv.data(), &ctx->tocDialogId_
+    app_start_for_result("tactility.selectiondialog", (int)argv.size(), argv.data(), ctx->appInstanceId, &ctx->tocDialogId_
     );
 }
 
@@ -215,8 +214,7 @@ void epubReaderCreateWidgets(lv_obj_t* parent, void* userData) {
                 "Epub Reader requires a device with PSRAM and cannot run on this hardware.",
                 "OK",
             };
-            app_manager_start_for_result(
-                "AlertDialog", ctx->appInstanceId, 3, argv, &ctx->psramAlertId_
+            app_start_for_result("tactility.alertdialog", 3, argv, ctx->appInstanceId, &ctx->psramAlertId_
             );
         }
         return;
