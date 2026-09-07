@@ -42,10 +42,13 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Stop the game timer and mark the context closing BEFORE the window is removed, so the
+    // game-tick callback stops touching widgets while the window manager is deleting them.
+    breakoutTeardown(ctx.get());
+
     window_manager_remove(window);
     check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
-    breakoutTeardown(ctx.get());
 
     return 0;
 }

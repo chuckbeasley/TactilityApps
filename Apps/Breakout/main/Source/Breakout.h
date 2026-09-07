@@ -82,6 +82,10 @@ struct Context {
     int brickColorIndex[MAX_BRICKS] = {};
     bool needsInit = true;
 
+    // Set when the app is closing; the game-timer callback checks it and stops stepping,
+    // so update() never dereferences widgets the window manager is about to delete.
+    bool closing = false;
+
     // Multi-ball
     BallState balls[MAX_BALLS] = {};
     int activeBallCount = 1;

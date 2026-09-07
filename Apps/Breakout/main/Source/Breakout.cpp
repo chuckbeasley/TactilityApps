@@ -418,6 +418,8 @@ void breakoutCreateWidgets(lv_obj_t* parent, void* userData) {
 }
 
 void breakoutTeardown(Context* ctx) {
+    ctx->closing = true;
+
     if (ctx->gameTimer) {
         lv_timer_delete(ctx->gameTimer);
         ctx->gameTimer = nullptr;
@@ -1443,7 +1445,8 @@ static void updateSoundIcon(Context* ctx) {
 
 static void onTick(lv_timer_t* timer) {
     auto* ctx = static_cast<Context*>(lv_timer_get_user_data(timer));
-    if (ctx) update(ctx);
+    if (!ctx || ctx->closing) return;
+    update(ctx);
 }
 
 static void onPressed(lv_event_t* e) {
